@@ -65,15 +65,6 @@ def get_column_data_types(db_file, table):
             data_types = {column_info[1]: column_info[2] for column_info in columns_info}
             return data_types
 
-def test_column_data_types():
-    db_file = "reg.sqlite"
-    table = "classes"
-    column_data_types = get_column_data_types(db_file, table)
-    for column, data_type in column_data_types.items():
-        print(f"Column: {column}, Data Type: {data_type}")
-
-if __name__ == "__main__":
-    test_column_data_types()
 
 
 def get_all(db_file, table):
@@ -226,6 +217,11 @@ def test():
     joined_data = inner_join(db_file, 'classes', 'crosslistings', 'courseid')
     for row in joined_data[0:10]:
         print(row)
+
+
+    column_data_types = get_column_data_types(db_file, "classes")
+    for column, data_type in column_data_types.items():
+        print(f"Column: {column}, Data Type: {data_type}")
 
 
 if __name__ == "__main__":
