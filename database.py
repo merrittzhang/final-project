@@ -66,7 +66,25 @@ def get_all(db_file, table):
                     entry[column] = row[i]
                 data.append(entry)
             return data
+        
+"""
+updates rows in table from db_file. In row with primary key 
+unique_id, update the columns indicated by all the keys in 
+dictionary values with all the values in dictionary values
+"""
+def update(db_file, table, values, unique_id)
+
+"""
+add a row to table from db_file. Add values from dictionary
+values to columns indicated by keys in dictionary values
+"""
+def insert(db_file, table, values)
     
+"""
+deletes a row with primary key unique_id from table 
+in db_file.
+"""
+def delete(db_file, table, unique_id)
 
 def test():
     db_file = "reg.sqlite"
