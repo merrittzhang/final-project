@@ -159,70 +159,41 @@ def inner_join(db_file, table1, table2, join_column):
                     entry[column] = row[i]
                 data.append(entry)
             return data
+        
+"""
+Performs an inner join on multiple tables based on a common column.
 
+:param db_file: The database file.
+:param tables: A list of tables to join.
+:param join_column: The common column used for the join.
+:return: A list of dictionaries representing the joined table.
+"""
+def inner_join_multiple_tables(db_file, tables, join_column):
+    if len(tables) < 2:
+        raise ValueError("At least two tables are required for a join.")
 
-def test():
-    db_file = "reg.sqlite"
-    tables = get_table_names(db_file)
-    print(tables)
+    for table in tables:
+        check_table(db_file, table)
 
-    columns = get_columns(db_file, 'classes')
-    print(columns)
+    with get_connection(db_file) as conn:
+        with contextlib.closing(conn.cursor()) as cursor:
+            # Constructing the SQL query for multiple tables
+            join_clause = f" INNER JOIN ".join(
+                [f"{tables[i]} ON {tables[i]}.{join_column} = {tables[0]}.{join_column}" for i in range(1, len(tables))]
+            )
+            sql_query = f"SELECT * FROM {tables[0]} INNER JOIN {join_clause}"
 
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:10]:
-        print(f"{clss['classid']} - {clss['courseid']}")
+            cursor.execute(sql_query)
+            columns = [col[0] for col in cursor.description]
+            data = []
 
-    delete(db_file, 'classes', 7838)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:10]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-
-    class_dict = {
-        'classid' : 7838, 
-        'courseid': 3457, 
-        'days': 'M',
-        'starttime': '01:30 PM',
-        'endtime': '04:20 PM', 
-        'bldg': 'CHANC', 
-        'roomnum': 105,
-    }
-
-    insert(db_file, 'classes', class_dict)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:len(classes)]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-    update_dict = {
-        'courseid': 3458, 
-    }
-
-    update(db_file, 'classes', update_dict, 7838)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:len(classes)]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-    joined_data = inner_join(db_file, 'classes', 'crosslistings', 'courseid')
-    for row in joined_data[0:10]:
-        print(row)
-
-
-    column_data_types = get_column_data_types(db_file, "classes")
-    for column, data_type in column_data_types.items():
-        print(f"Column: {column}, Data Type: {data_type}")
+            for row in cursor.fetchall():
+                entry = {}
+                for i, column in enumerate(columns):
+                    entry[column] = row[i]
+                data.append(entry)
+            return data
 
 
 if __name__ == "__main__":
-    test()
+    pass
