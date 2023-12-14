@@ -48,6 +48,24 @@ def get_columns(db_file, table):
             columns = [col[0] for col in cursor.description]
             return columns
         
+"""
+Returns the data types of each column in the specified table.
+
+:param db_file: The database file.
+:param table: The table name.
+:return: A dictionary where keys are column names and values are data types.
+"""
+def get_column_data_types(db_file, table):
+    check_table(db_file, table)
+
+    with get_connection(db_file) as conn:
+        with contextlib.closing(conn.cursor()) as cursor:
+            cursor.execute(f"PRAGMA table_info({table})")
+            columns_info = cursor.fetchall()
+            data_types = {column_info[1]: column_info[2] for column_info in columns_info}
+            return data_types
+
+
 
 def get_all(db_file, table):
     check_table(db_file, table)
@@ -115,6 +133,33 @@ def delete(db_file, table, classid):
             cursor.execute(sql_query, (classid,))
             conn.commit()
 
+"""
+Performs an inner join on two tables based on a common column.
+
+:param db_file: The database file.
+:param table1: The first table to join.
+:param table2: The second table to join.
+:param join_column: The common column used for the join.
+:return: A list of dictionaries representing the joined table.
+"""
+def inner_join(db_file, table1, table2, join_column):
+    check_table(db_file, table1)
+    check_table(db_file, table2)
+
+    with get_connection(db_file) as conn:
+        with contextlib.closing(conn.cursor()) as cursor:
+            sql_query = f"SELECT * FROM {table1} INNER JOIN {table2} ON {table1}.{join_column} = {table2}.{join_column}"
+            cursor.execute(sql_query)
+            columns = [col[0] for col in cursor.description]
+            data = []
+
+            for row in cursor.fetchall():
+                entry = {}
+                for i, column in enumerate(columns):
+                    entry[column] = row[i]
+                data.append(entry)
+            return data
+
 
 def test():
     db_file = "reg.sqlite"
@@ -168,6 +213,15 @@ def test():
     print(f"First 10:")
     for clss in classes[0:len(classes)]:
         print(f"{clss['classid']} - {clss['courseid']}")
+
+    joined_data = inner_join(db_file, 'classes', 'crosslistings', 'courseid')
+    for row in joined_data[0:10]:
+        print(row)
+
+
+    column_data_types = get_column_data_types(db_file, "classes")
+    for column, data_type in column_data_types.items():
+        print(f"Column: {column}, Data Type: {data_type}")
 
 
 if __name__ == "__main__":
