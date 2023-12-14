@@ -10,6 +10,14 @@ class DatabaseError(Exception):
         return self.error
 
 
+class InvalidTable(DatabaseError):
+    def __init__(self, string):
+        self.error = string
+    
+    def __str__(self):
+        return self.error
+
+
 def get_connection(db_file):
     conn = sqlite3.connect(db_file)
     return conn
