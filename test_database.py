@@ -70,3 +70,14 @@ def test_inner_join_multiple_tables():
     joined_data = database.inner_join_multiple_tables(db_file, tables, 'classid')
     for row in joined_data:
         print(row)
+
+if __name__ == "__main__":
+    test_get_table_names()
+    test_get_column_names()
+    test_column_data_types()
+    test_get_all()
+    test_update()
+    test_insert()
+    test_delete()
+    test_inner_join()
+    test_inner_join_multiple_tables()
