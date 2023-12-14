@@ -1,1 +1,1 @@
-Created by [Samuel Sanft](github.com/ss7886) and [Merritt Zhang](github.com/merrittzhang).
+Created by [Samuel Sanft](https://github.com/ss7886) and [Merritt Zhang](https://github.com/merrittzhang).
