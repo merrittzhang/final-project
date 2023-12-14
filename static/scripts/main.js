@@ -1,13 +1,11 @@
-$(document).ready(setup);
+function mainSetup() {
+    document.title = siteTitle;
+    history.pushState(null, null, "/");
 
-async function setup() {
-    const response = await fetch("/api/get_tables");
-    tables = await response.json();
-    console.log(tables);
-
-    $('#tablesList').empty();
-    var list = $('<ul/>').appendTo($('#tablesList'));
+    $('#bodyDiv').empty();
+    $('<h2/>').text("Tables:").appendTo('#bodyDiv');
+    var list = $('<ul/>').appendTo($('#bodyDiv'));
     for (const table of tables) {
-        list.append($('<li/>').text(table));
+        list.append($("<li/>").append($('<a/>', {href: "/tables/" + table}).text(table)));
     }
 }
