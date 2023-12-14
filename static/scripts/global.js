@@ -9,7 +9,11 @@ async function setup() {
 
     var response = await fetch("/api/get_tables");
     tables = await response.json();
-    console.log(tables);
+
+    $('#tableMenu').empty();
+    for (let table of tables) {
+        $('<li/>').append($('<a/>', {class: "dropdown-item", href: "/tables/" + table}).text(table)).appendTo($('#tableMenu'));
+    }
 
     if (path == '/') {
         mainSetup();
