@@ -115,6 +115,33 @@ def delete(db_file, table, classid):
             cursor.execute(sql_query, (classid,))
             conn.commit()
 
+def inner_join(db_file, table1, table2, join_column):
+    """
+    Performs an inner join on two tables based on a common column.
+
+    :param db_file: The database file.
+    :param table1: The first table to join.
+    :param table2: The second table to join.
+    :param join_column: The common column used for the join.
+    :return: A list of dictionaries representing the joined table.
+    """
+    check_table(db_file, table1)
+    check_table(db_file, table2)
+
+    with get_connection(db_file) as conn:
+        with contextlib.closing(conn.cursor()) as cursor:
+            sql_query = f"SELECT * FROM {table1} INNER JOIN {table2} ON {table1}.{join_column} = {table2}.{join_column}"
+            cursor.execute(sql_query)
+            columns = [col[0] for col in cursor.description]
+            data = []
+
+            for row in cursor.fetchall():
+                entry = {}
+                for i, column in enumerate(columns):
+                    entry[column] = row[i]
+                data.append(entry)
+            return data
+
 
 def test():
     db_file = "reg.sqlite"
@@ -168,6 +195,10 @@ def test():
     print(f"First 10:")
     for clss in classes[0:len(classes)]:
         print(f"{clss['classid']} - {clss['courseid']}")
+
+    joined_data = inner_join(db_file, 'classes', 'crosslistings', 'courseid')
+    for row in joined_data:
+        print(row)
 
 
 if __name__ == "__main__":
