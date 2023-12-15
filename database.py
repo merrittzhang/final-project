@@ -62,10 +62,10 @@ def check_columns(db_file, table, row, include_all=True):
     columns = get_columns(db_file, table)
     keys = row.keys()
     if include_all and len(keys) != len(columns):
-        raise DatabaseError(f"Row {row} does not have keys matching the columns of {table}")
+        raise BadFields(f"Row {row} does not have keys matching the columns of {table}")
     for key in keys:
         if key not in columns:
-            raise DatabaseError(f"Row {row} does not have keys matching the columns of {table}")
+            raise BadFields(f"Row {row} does not have keys matching the columns of {table}")
 
 
 """
@@ -119,7 +119,6 @@ def get_column_data_types(db_file, table):
             columns_info = cursor.fetchall()
             data_types = {column_info[1]: column_info[2] for column_info in columns_info}
             return data_types
-
 
 
 """
