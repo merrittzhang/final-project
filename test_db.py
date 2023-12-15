@@ -5,8 +5,10 @@ import database
 
 import pytest
 
+
 TEST_DB = "example_dbs/reg.sqlite"
 TEST_DB2 = "example_dbs/reg_test.sqlite" # Use this for anything that modifies db
+
 
 class TestDatabase:
     @pytest.fixture
@@ -175,3 +177,33 @@ class TestDatabase:
         assert len(rows) == ref_len
         for key, val in ref_row.items():
             assert rows[0][key] == val
+    
+    @pytest.mark.stress
+    def test_stress1(self, setup):
+        iters = 1
+        ref_len = 1494
+        for i in range(iters):
+            rows = database.get_all(TEST_DB2, 'classes')
+            for row in rows:
+                database.delete(TEST_DB2, 'classes', row)
+            rows_deleted = database.get_all(TEST_DB2, 'classes')
+            assert len(rows_deleted) == 0
+            for row in rows:
+                database.insert(TEST_DB2, 'classes', row)
+            rows_restored = database.get_all(TEST_DB2, 'classes')
+            assert len(rows_restored) == ref_len
+    
+    @pytest.mark.stress
+    def test_stress2(self, setup):
+        iters = 2
+        ref_len = 1494
+        for i in range(iters):
+            rows = database.get_all(TEST_DB2, 'classes')
+            for row in rows:
+                database.delete(TEST_DB2, 'classes', row)
+            rows_deleted = database.get_all(TEST_DB2, 'classes')
+            assert len(rows_deleted) == 0
+            for row in rows:
+                database.insert(TEST_DB2, 'classes', row)
+            rows_restored = database.get_all(TEST_DB2, 'classes')
+            assert len(rows_restored) == ref_len
