@@ -14,6 +14,7 @@
         <script src="{{url_for('static', filename='scripts/main.js')}}"></script>
         <script src="{{url_for('static', filename='scripts/global.js')}}"></script>
         <script src="{{url_for('static', filename='scripts/table.js')}}"></script>
+        <script src="{{url_for('static', filename='scripts/join.js')}}"></script>
     </head>
     <body>
         <div class="vh-100 d-flex flex-column autoflow-hidden">
@@ -26,7 +27,7 @@
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="/">Home</a>
+                            <a class="nav-link" aria-current="page" href="/">Home</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -34,6 +35,9 @@
                             </a>
                             <ul id="tableMenu" class="dropdown-menu">
                             </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" aria-current="page" href="/join">Join Tables</a>
                         </li>
                     </div>
                 </div>
