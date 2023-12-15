@@ -21,11 +21,13 @@ async function setup() {
         if (path_split.length != 3) {
             console.log("Invalid path");
             mainSetup();
+            return;
         }
         let table = path_split[2];
         if (!tables.includes(table)) {
             console.log("Invalid path");
             mainSetup();
+            return;
         }
 
         activeTable = table;
