@@ -90,10 +90,14 @@ async function joinSetup() {
                 makeTable(data);
                 return;
             },
-            error: function () {
+            error: function (response) {
                 console.log("Request failed");
                 $("#rightCol").empty();
-                $("<h2/>", {class: "text-danger"}).text("Server Error").appendTo($("#rightCol"));
+                let text = "Server Error";
+                if (response.status == 400) {
+                    text = "Invalid Query";
+                }
+                $("<h2/>", {class: "text-danger"}).text(text).appendTo($("#rightCol"));
                 return;
             }
         };
@@ -153,6 +157,7 @@ function getJoinForm(index, columns) {
 
 function makeTable(data) {
     $('#rightCol').empty();
+    $('<h2/>').text("Num Results: " + data.length).appendTo($('#rightCol'));
     if (data.length == 0) {
         return;
     }
