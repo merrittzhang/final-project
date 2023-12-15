@@ -3,7 +3,7 @@ async function tableSetup() {
     history.pushState(null, null, "/tables/" + activeTable);
 
     $('#bodyDiv').empty();
-    $('<h2/>').text("Join Tables: " + activeTable).appendTo($('#bodyDiv'));
+    $('<h2/>').text("Table: " + activeTable).appendTo($('#bodyDiv'));
 
     var request = await fetch("/api/get_all/" + activeTable);
     const response = await request.json();
