@@ -22,7 +22,7 @@ Running `python main.py -h` will display the necessary arguments.
 
 Example run command: `python main.py example_dbs/reg.sqlite 3000`
 
-Once the server is online, the web application can be accessed at `localhost:<port>.
+Once the server is online, the web application can be accessed at `localhost:<port>`.
 
 
 ### Using the Site
