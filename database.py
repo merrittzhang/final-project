@@ -1,13 +1,17 @@
 import contextlib
+import os
 import sqlite3
 
 
+"""
+Database related exceptions:
+"""
 class DatabaseError(Exception):
     def __init__(self, string):
         self.error = string
     
     def __str__(self):
-        return self.error
+        return f"DatabaseError: {self.error}"
 
 
 class InvalidTable(DatabaseError):
@@ -15,19 +19,67 @@ class InvalidTable(DatabaseError):
         self.error = string
     
     def __str__(self):
-        return self.error
+        return f"InvalidTable: {self.error}"
+    
+
+class BadFields(DatabaseError):
+    def __init__(self, string):
+        self.error = string
+    
+    def __str__(self):
+        return f"BadFields: {self.error}"
+    
+
+class InvalidDB(DatabaseError):
+    def __init__(self, string):
+        self.error = string
+    
+    def __str__(self):
+        return f"InvalidDB: {self.error}"
 
 
+"""
+Checks that a database at db_file exists.
+"""
+def check_db(db_file):
+    if not os.path.exists(db_file):
+        raise InvalidDB(f"Database at {db_file} does not exist.")
+
+
+"""
+Checks that a table exists within db_file.
+"""
+def check_table(db_file, table):
+    tables = get_table_names(db_file)
+    if table not in tables:
+        raise InvalidTable(f"Table {table} does not exist in {db_file}")
+
+
+"""
+Checks that a row has all of the keys matching all of the columns of a table.
+"""
+def check_columns(db_file, table, row, include_all=True):
+    columns = get_columns(db_file, table)
+    keys = row.keys()
+    if include_all and len(keys) != len(columns):
+        raise BadFields(f"Row {row} does not have keys matching the columns of {table}")
+    for key in keys:
+        if key not in columns:
+            raise BadFields(f"Row {row} does not have keys matching the columns of {table}")
+
+
+"""
+Returns a connection to a database in db_file.
+"""
 def get_connection(db_file):
+    check_db(db_file)
     conn = sqlite3.connect(db_file)
     return conn
 
 
-def check_table(db_file, table):
-    tables = get_table_names(db_file)
-    if table not in tables:
-        raise DatabaseError(f"Table {table} does not exist in {db_file}")
-
+"""
+Returns the names of all tables in db_file.
+"""
 def get_table_names(db_file):
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
@@ -38,6 +90,9 @@ def get_table_names(db_file):
             return tables
         
 
+"""
+Returns the names of all columns in table belonging to db_file.
+"""
 def get_columns(db_file, table):
     check_table(db_file, table)
     
@@ -66,7 +121,9 @@ def get_column_data_types(db_file, table):
             return data_types
 
 
-
+"""
+Returns all rows and all columns of table in db_file.
+"""
 def get_all(db_file, table):
     check_table(db_file, table)
 
@@ -84,31 +141,42 @@ def get_all(db_file, table):
                     entry[column] = row[i]
                 data.append(entry)
             return data
-        
+
+
 """
-updates rows in table from db_file. In row with primary key 
-classid, update the columns indicated by all the keys in 
-dictionary values with all the values in dictionary values
+Updates a row in table from db_file.
+Values is a dict with keys representing columns and values 
+representing values to update.
+Identifiers is a dict with keys representing columns and 
+values representing which rows to select.
 """
-def update(db_file, table, values, classid):
+def update(db_file, table, values, identifiers):
     check_table(db_file, table)
+    check_columns(db_file, table, values, include_all=False)
+    check_columns(db_file, table, identifiers, include_all=False)
+
     set_clause = ", ".join([f"{key} = ?" for key in values.keys()])
-    parameters = list(values.values()) + [classid]
+    where_clause = " AND ".join([f"{key} LIKE ?" for key in identifiers.keys()])
+    parameters = list(values.values()) + list(identifiers.values())
 
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            sql_query = f"UPDATE {table} SET {set_clause} WHERE classid = ?"
+            sql_query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
+            print(sql_query)
+            print(parameters)
             cursor.execute(sql_query, parameters)
             conn.commit()
-
     
 
 """
-add a row to table from db_file. Add values from dictionary
-values to columns indicated by keys in dictionary values
+Inserts a row into table in db_file.
+Values is a dict with keys representing columns and values
+representing values to insert.
 """
 def insert(db_file, table, values):
     check_table(db_file, table)
+    check_columns(db_file, table, values)    
+
     columns = ', '.join(values.keys())
     placeholders = ', '.join(['?'] * len(values))
     parameters = list(values.values())
@@ -121,79 +189,85 @@ def insert(db_file, table, values):
 
     
 """
-deletes a row with primary key classid from table 
-in db_file.
+Deletes a row or rows in table.
+Identifiers is a dict with keys representing columns and
+values representing which rows to delete.
 """
-def delete(db_file, table, classid):
+def delete(db_file, table, identifiers):
     check_table(db_file, table)
+    check_columns(db_file, table, identifiers, include_all=False)
+
+    where_clause = " AND ".join([f"{key} LIKE ?" for key in identifiers.keys()])
+    parameters = list(identifiers.values())
 
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            sql_query = f"DELETE FROM {table} WHERE classid = ?"
-            cursor.execute(sql_query, (classid,))
+            sql_query = f"DELETE FROM {table} WHERE {where_clause}"
+            cursor.execute(sql_query, parameters)
             conn.commit()
 
 """
 Performs an inner join on two tables based on a common column.
-
 :param db_file: The database file.
-:param table1: The first table to join.
-:param table2: The second table to join.
-:param join_column: The common column used for the join.
+:param table1: The primary table.
+:param table2: A list of tables to join.
+:param join_column: A list of list of tuples. Each tuple is (table1, col1, table2, col2).
 :return: A list of dictionaries representing the joined table.
 """
-def inner_join(db_file, table1, table2, join_column):
-    check_table(db_file, table1)
-    check_table(db_file, table2)
+def join(db_file, prim_table, tables, identifiers):
+    check_table(db_file, prim_table)
+    for table in tables:
+        check_table(db_file, table)
+    for join_identifiers in identifiers:
+        if len(join_identifiers) < 1:
+            raise DatabaseError("Must have atleast one column to join on.")
+        for identifier in join_identifiers:
+            table1, col1, table2, col2 = identifier
+            check_table(db_file, table1)
+            check_table(db_file, table2)
+            check_columns(db_file, table1, {col1: ""}, include_all=False)
+            check_columns(db_file, table2, {col2: ""}, include_all=False)
+    if len(tables) != len(identifiers):
+        raise DatabaseError("Number of tables to join must match number of identifiers.")
+    
+    columns = get_columns(db_file, prim_table)
+    for table in tables:
+        columns += get_columns(db_file, table)
+
 
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            sql_query = f"SELECT * FROM {table1} INNER JOIN {table2} ON {table1}.{join_column} = {table2}.{join_column}"
+            sql_query = f"SELECT * FROM {prim_table}"
+            for table, join_identifiers in zip(tables, identifiers):
+                join_query = f" JOIN {table} ON "
+                select_query = " AND ".join([f"{table1}.{col1} = {table2}.{col2}" for table1, col1, table2, col2 in join_identifiers])
+                sql_query += join_query + select_query
+            print(sql_query)
             cursor.execute(sql_query)
-            columns = [col[0] for col in cursor.description]
+            
             data = []
-
             for row in cursor.fetchall():
                 entry = {}
-                for i, column in enumerate(columns):
-                    entry[column] = row[i]
+                for i, col in enumerate(row):
+                    entry[columns[i]] = col
                 data.append(entry)
             return data
         
+
 """
-Performs an inner join on multiple tables based on a common column.
-
-:param db_file: The database file.
-:param tables: A list of tables to join.
-:param join_column: The common column used for the join.
-:return: A list of dictionaries representing the joined table.
+For local testing (see more in test_db.py).
 """
-def inner_join_multiple_tables(db_file, tables, join_column):
-    if len(tables) < 2:
-        raise ValueError("At least two tables are required for a join.")
-
-    for table in tables:
-        check_table(db_file, table)
-
-    with get_connection(db_file) as conn:
-        with contextlib.closing(conn.cursor()) as cursor:
-            # Constructing the SQL query for multiple tables
-            join_clause = f" INNER JOIN ".join(
-                [f"{tables[i]} ON {tables[i]}.{join_column} = {tables[0]}.{join_column}" for i in range(1, len(tables))]
-            )
-            sql_query = f"SELECT * FROM {tables[0]} INNER JOIN {join_clause}"
-
-            cursor.execute(sql_query)
-            columns = [col[0] for col in cursor.description]
-            data = []
-
-            for row in cursor.fetchall():
-                entry = {}
-                for i, column in enumerate(columns):
-                    entry[column] = row[i]
-                data.append(entry)
-            return data
+def test():
+    db_url = "example_dbs/reg.sqlite"
+    test = join(db_url, "courses", ['crosslistings', 'coursesprofs', 'profs'], 
+                [[('courses', 'courseid', 'crosslistings', 'courseid')], 
+                 [('courses', 'courseid', 'coursesprofs', 'courseid')], 
+                 [('coursesprofs', 'profid', 'profs', 'profid')]])
+    print(f"{len(test)} results found")
+    for row in test[0:10]:
+        print(f"{row['dept']} {row['coursenum']} - {row['title']} - {row['profname']}")
+    print(test[0])
 
 
 if __name__ == "__main__":
-    pass
+    test()

@@ -3,9 +3,9 @@ async function tableSetup() {
     history.pushState(null, null, "/tables/" + activeTable);
 
     $('#bodyDiv').empty();
-    $('<h2/>').text("Table: " + activeTable).appendTo($('#bodyDiv'));
+    $('<h2/>').text("Join Tables: " + activeTable).appendTo($('#bodyDiv'));
 
-    var request = await fetch("/api/tables/" + activeTable);
+    var request = await fetch("/api/get_all/" + activeTable);
     const response = await request.json();
 
     let columns = response["columns"];
@@ -22,7 +22,6 @@ async function tableSetup() {
     }
 
     let body = $('<tbody/>').appendTo(table);
-    let even = false;
 
     for (const row of data) {
         let tableRow = $('<tr />').appendTo(body);
