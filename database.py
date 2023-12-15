@@ -7,7 +7,7 @@ class DatabaseError(Exception):
         self.error = string
     
     def __str__(self):
-        return self.error
+        return f"DatabaseError: {self.error}"
 
 
 class InvalidTable(DatabaseError):
@@ -15,7 +15,15 @@ class InvalidTable(DatabaseError):
         self.error = string
     
     def __str__(self):
-        return self.error
+        return f"InvalidTable: {self.error}"
+    
+
+class BadFields(DatabaseError):
+    def __init__(self, string):
+        self.error = string
+    
+    def __str__(self):
+        return f"BadFields: {self.error}"
 
 
 def get_connection(db_file):
@@ -23,11 +31,31 @@ def get_connection(db_file):
     return conn
 
 
+"""
+Checks that a table exists within db_file.
+"""
 def check_table(db_file, table):
     tables = get_table_names(db_file)
     if table not in tables:
-        raise DatabaseError(f"Table {table} does not exist in {db_file}")
+        raise InvalidTable(f"Table {table} does not exist in {db_file}")
 
+
+"""
+Checks that a row has all of the keys matching all of the columns of a table.
+"""
+def check_columns(db_file, table, row):
+    columns = get_columns(db_file, table)
+    keys = row.keys()
+    if len(keys) != len(columns):
+        raise DatabaseError(f"Row {row} does not have keys matching the columns of {table}")
+    for col in columns:
+        if col not in keys:
+            raise DatabaseError(f"Row {row} does not have keys matching the columns of {table}")
+
+
+"""
+Returns the names of all tables in db_file.
+"""
 def get_table_names(db_file):
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
@@ -38,6 +66,9 @@ def get_table_names(db_file):
             return tables
         
 
+"""
+Returns the names of all columns in table belonging to db_file.
+"""
 def get_columns(db_file, table):
     check_table(db_file, table)
     
@@ -49,6 +80,9 @@ def get_columns(db_file, table):
             return columns
         
 
+"""
+Returns all rows and all columns of table in db_file.
+"""
 def get_all(db_file, table):
     check_table(db_file, table)
 
@@ -66,31 +100,40 @@ def get_all(db_file, table):
                     entry[column] = row[i]
                 data.append(entry)
             return data
-        
+
+
 """
-updates rows in table from db_file. In row with primary key 
-classid, update the columns indicated by all the keys in 
-dictionary values with all the values in dictionary values
+Updates a row in table from db_file.
+Values is a dict with keys representing columns and values 
+representing values to update.
+Identifiers is a dict with keys representing columns and 
+values representing which rows to select.
 """
-def update(db_file, table, values, classid):
+def update(db_file, table, values, identifiers):
     check_table(db_file, table)
+
     set_clause = ", ".join([f"{key} = ?" for key in values.keys()])
-    parameters = list(values.values()) + [classid]
+    where_clause = " AND ".join([f"{key} LIKE ?" for key in identifiers.keys()])
+    parameters = list(values.values()) + list(identifiers.values())
 
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            sql_query = f"UPDATE {table} SET {set_clause} WHERE classid = ?"
+            sql_query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
+            print(sql_query)
+            print(parameters)
             cursor.execute(sql_query, parameters)
             conn.commit()
-
     
 
 """
-add a row to table from db_file. Add values from dictionary
-values to columns indicated by keys in dictionary values
+Inserts a row into table in db_file.
+Values is a dict with keys representing columns and values
+representing values to insert.
 """
 def insert(db_file, table, values):
     check_table(db_file, table)
+    check_columns(db_file, table, values)    
+
     columns = ', '.join(values.keys())
     placeholders = ', '.join(['?'] * len(values))
     parameters = list(values.values())
@@ -103,71 +146,44 @@ def insert(db_file, table, values):
 
     
 """
-deletes a row with primary key classid from table 
-in db_file.
+Deletes a row or rows in table.
+Identifiers is a dict with keys representing columns and
+values representing which rows to delete.
 """
-def delete(db_file, table, classid):
+def delete(db_file, table, identifiers):
     check_table(db_file, table)
+
+    where_clause = " AND ".join([f"{key} LIKE ?" for key in identifiers.keys()])
+    parameters = list(identifiers.values())
 
     with get_connection(db_file) as conn:
         with contextlib.closing(conn.cursor()) as cursor:
-            sql_query = f"DELETE FROM {table} WHERE classid = ?"
-            cursor.execute(sql_query, (classid,))
+            sql_query = f"DELETE FROM {table} WHERE {where_clause}"
+            cursor.execute(sql_query, parameters)
             conn.commit()
 
 
+"""
+For local testing (see more in test_db.py).
+"""
 def test():
-    db_file = "reg.sqlite"
-    tables = get_table_names(db_file)
-    print(tables)
-
-    columns = get_columns(db_file, 'classes')
-    print(columns)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:10]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-    delete(db_file, 'classes', 7838)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:10]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-
-    class_dict = {
-        'classid' : 7838, 
-        'courseid': 3457, 
+    update_vals = {
+        'days': 'TEST!!!',
+        'roomnum': 'TEST'
+    }
+    id_vals = {
+        'classid': 7838,
+        'courseid': 3457
+    }
+    ref_row = {
+        'classid': 7838,
+        'courseid': 3457,
         'days': 'M',
         'starttime': '01:30 PM',
-        'endtime': '04:20 PM', 
-        'bldg': 'CHANC', 
-        'roomnum': 105,
+        'endtime': '04:20 PM',
+        'bldg': 'CHANC',
+        'roomnum': '105'
     }
-
-    insert(db_file, 'classes', class_dict)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:len(classes)]:
-        print(f"{clss['classid']} - {clss['courseid']}")
-
-    update_dict = {
-        'courseid': 3458, 
-    }
-
-    update(db_file, 'classes', update_dict, 7838)
-
-    classes = get_all(db_file, 'classes')
-    print(f"Num classes: {len(classes)}")
-    print(f"First 10:")
-    for clss in classes[0:len(classes)]:
-        print(f"{clss['classid']} - {clss['courseid']}")
 
 
 if __name__ == "__main__":
