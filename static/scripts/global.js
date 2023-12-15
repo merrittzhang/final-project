@@ -32,5 +32,9 @@ async function setup() {
 
         activeTable = table;
         tableSetup();
+    } else if (path == '/join') {
+        joinSetup();
+    } else {
+        mainSetup();
     }
 }

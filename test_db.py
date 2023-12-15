@@ -25,6 +25,21 @@ class TestDatabase:
         columns = database.get_columns(TEST_DB, "classes")
         ref = ['classid', 'courseid', 'days', 'starttime', 'endtime', 'bldg', 'roomnum']
         assert columns == ref
+    
+    def test_get_types(self):
+        columns = database.get_columns(TEST_DB, "classes")
+        ref = {
+            'classid': "INTEGER",
+            'courseid': "INTEGER",
+            'days': "TEXT",
+            'starttime': "TEXT",
+            'endtime': "TEXT",
+            'bldg': "TEXT",
+            'roomnum': "TEXT"}
+        types = database.get_column_data_types(TEST_DB, "classes")
+        assert len(types) == len(ref)
+        for key, val in ref.items():
+            assert types[key] == val
 
     def test_get_all(self):
         rows = database.get_all(TEST_DB, "classes")
