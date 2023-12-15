@@ -79,12 +79,9 @@ async function joinSetup() {
             let col2 = $('#col2' + i).val();
             identifiers.push([[table1, col1, table2, col2]]);
         }
-        console.log(prim_table);
-        console.log(tables);
-        console.log(identifiers);
 
         let requestData = {
-            type: 'POSt',
+            type: 'POST',
             url: "/api/join",
             data: JSON.stringify({"prim_table": prim_table, "tables": tables, "identifiers": identifiers}),
             contentType: 'application/json',

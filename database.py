@@ -231,8 +231,11 @@ def join(db_file, prim_table, tables, identifiers):
         raise DatabaseError("Number of tables to join must match number of identifiers.")
     
     columns = get_columns(db_file, prim_table)
+    lookupTable = [prim_table] * len(columns)
     for table in tables:
-        columns += get_columns(db_file, table)
+        secColumns = get_columns(db_file, table)
+        columns += secColumns
+        lookupTable += [table] * len(secColumns)
 
 
     with get_connection(db_file) as conn:
@@ -249,7 +252,10 @@ def join(db_file, prim_table, tables, identifiers):
             for row in cursor.fetchall():
                 entry = {}
                 for i, col in enumerate(row):
-                    entry[columns[i]] = col
+                    if columns[i] in entry and entry[columns[i]] != col:
+                        entry[f"{lookupTable[i]}.{columns[i]}"] = col
+                    else:
+                        entry[columns[i]] = col
                 data.append(entry)
             return data
         
