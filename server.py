@@ -1,6 +1,8 @@
 import flask
 import database
 
+from sqlite3 import OperationalError as SQLiteError
+
 
 DB_URL = ""
 app = flask.Flask(__name__)
@@ -9,7 +11,6 @@ app = flask.Flask(__name__)
 @app.route('/', methods=['GET'])
 @app.route('/tables/<name>', methods=['GET'])
 @app.route('/join', methods=['GET'])
-@app.route('/join/result', methods=['GET'])
 def index(name=""):
     return flask.render_template('index.html')
 
@@ -63,10 +64,10 @@ def update(table):
         return flask.jsonify("Success")
     except database.DatabaseError as ex:
         print(ex)
-        flask.abort(500)
+        flask.abort(400)
     except Exception as ex:
         print(ex)
-        flask.abort(400)
+        flask.abort(500)
 
 
 @app.route('/api/insert/<table>', methods=['POST'])
@@ -77,10 +78,10 @@ def insert(table):
         return flask.jsonify("Success")
     except database.DatabaseError as ex:
         print(ex)
-        flask.abort(500)
+        flask.abort(400)
     except Exception as ex:
         print(ex)
-        flask.abort(400)
+        flask.abort(500)
 
 
 @app.route('/api/delete/<table>', methods=['POST'])
@@ -91,10 +92,10 @@ def delete(table):
         return flask.jsonify("Success")
     except database.DatabaseError as ex:
         print(ex)
-        flask.abort(500)
+        flask.abort(400)
     except Exception as ex:
         print(ex)
-        flask.abort(400)
+        flask.abort(500)
 
 
 @app.route('/api/join', methods=['POST'])
@@ -106,9 +107,12 @@ def join():
         identifiers = data["identifiers"]
         result = database.join(DB_URL, prim_table, tables, identifiers)
         return flask.jsonify(result)
-    except database.DatabaseError as ex:
-        print(ex)
-        flask.abort(500)
-    except Exception as ex:
+    except SQLiteError as ex:
         print(ex)
         flask.abort(400)
+    except database.DatabaseError as ex:
+        print(ex)
+        flask.abort(400)
+    except Exception as ex:
+        print(ex)
+        flask.abort(500)
