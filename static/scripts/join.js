@@ -10,7 +10,7 @@ async function joinSetup() {
 
     let container = $('<div/>', {class: "mh-100 d-flex overflow-hidden"}).appendTo($('#bodyDiv'));
 
-    let joinDiv = $('<div/>', {class: "col-3", id: "leftCol"}).appendTo(container);
+    let joinDiv = $('<div/>', {class: "mh-100 overflow-auto col-3", id: "leftCol"}).appendTo(container);
     $('<div/>', {class: "mh-100 col-9 d-flex flex-column overflow-hidden", id: "rightCol"}).appendTo(container);
 
     $('<h4/>').text("Primary Table").appendTo(joinDiv);
@@ -31,13 +31,38 @@ async function joinSetup() {
     let joinForm = getJoinForm(0, columns);
     secondaryTables.push(joinForm);
     secondaryTablesDiv.append(secondaryTables[0]);
-    console.log(secondaryTables);
 
     let buttonsDiv = $('<div/>', {class: "d-flex"}).appendTo(joinDiv);
     let addButton = $('<button/>', {class: "btn btn-success"}).text("Add Table").appendTo(buttonsDiv);
     let deleteButton = $('<button/>', {class: "btn btn-danger"}).text("Remove Table").appendTo(buttonsDiv);
 
     deleteButton.hide();
+
+    if (tables.length == 2) {
+        addButton.hide();
+    }
+
+    addButton.click(() => {
+        let joinForm = getJoinForm(numTables, columns);
+        secondaryTables.push(joinForm);
+        secondaryTablesDiv.append(secondaryTables[numTables]);
+
+        numTables += 1;
+        deleteButton.show();
+        if (tables.length == numTables + 1) {
+            addButton.hide();
+        }
+    });
+
+    deleteButton.click(() => {
+        numTables -= 1;
+
+        secondaryTables[numTables].remove();
+        addButton.show();
+        if (numTables == 1){
+            deleteButton.hide();
+        }
+    })
 
     let joinButton = $('<button/>', {class: "btn btn-primary"}).text("Join").appendTo(joinDiv);
 
@@ -103,6 +128,7 @@ function getJoinForm(index, columns) {
     }
 
     table1.change(() => {
+        console.log("Join " + index + " - Table 1 change");
         let table = table1.val();
         col1.empty();
         for (let col of columns[table]) {
@@ -111,6 +137,7 @@ function getJoinForm(index, columns) {
     });
 
     table2.change(() => {
+        console.log("Join " + index + " - Table 2 change");
         let table = table2.val();
         col2.empty();
         for (let col of columns[table]) {
