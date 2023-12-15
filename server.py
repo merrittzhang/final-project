@@ -43,13 +43,58 @@ def get_table(table):
     try:
         columns = database.get_columns(DB_URL, table)
         data = database.get_all(DB_URL, table)
-        return flask.jsonify({"columns": columns, "data": data})
+        types = database.get_column_data_types(DB_URL, table)
+        return flask.jsonify({"columns": columns, "data": data, "types": types})
     except database.InvalidTable as ex:
         print(ex)
         return flask.abort(400)
     except Exception as ex:
         print(ex)
         return flask.abort(500)
+
+
+@app.route('/api/update/<table>', methods=['POST'])
+def update(table):
+    try:
+        data = flask.request.json
+        values = data["values"]
+        identifiers = data["identifiers"]
+        database.update(DB_URL, table, values, identifiers)
+        return flask.jsonify("Success")
+    except database.DatabaseError as ex:
+        print(ex)
+        flask.abort(500)
+    except Exception as ex:
+        print(ex)
+        flask.abort(400)
+
+
+@app.route('/api/insert/<table>', methods=['POST'])
+def insert(table):
+    try:
+        values = flask.request.json
+        database.insert(DB_URL, table, values)
+        return flask.jsonify("Success")
+    except database.DatabaseError as ex:
+        print(ex)
+        flask.abort(500)
+    except Exception as ex:
+        print(ex)
+        flask.abort(400)
+
+
+@app.route('/api/delete/<table>', methods=['POST'])
+def delete(table):
+    try:
+        identifiers = flask.request.json
+        database.delete(DB_URL, table, identifiers)
+        return flask.jsonify("Success")
+    except database.DatabaseError as ex:
+        print(ex)
+        flask.abort(500)
+    except Exception as ex:
+        print(ex)
+        flask.abort(400)
 
 
 @app.route('/api/join', methods=['POST'])
@@ -59,9 +104,6 @@ def join():
         prim_table = data["prim_table"]
         tables = data["tables"]
         identifiers = data["identifiers"]
-        print(prim_table)
-        print(tables)
-        print(identifiers)
         result = database.join(DB_URL, prim_table, tables, identifiers)
         return flask.jsonify(result)
     except database.DatabaseError as ex:
